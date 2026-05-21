@@ -1,0 +1,22 @@
+// =====================================================================
+// test_addr_modes.mem
+// Verifies the register-relative addressing mode of ST and LD
+// (rb != 31). All previous tests use absolute mode (rb == 31), so
+// the relative-mode address path is otherwise untested.
+//
+//   r10 = 0x10                       ; base pointer (byte addr -> dmem[4])
+//   r1  = 0xAA
+//   ST r1, [r10 - 8]                 ; mem[2] = 0xAA   (negative offset)
+//   LD r2, [r10 - 8]                 ; r2 = mem[2] = 0xAA
+//   ST r2, [r10 - 16]                ; mem[0] = 0xAA
+//
+// Expected after halt loop: dmem[0] == 0x000000AA
+// =====================================================================
+
+72800010   // [0x00] MOVI r10, #0x10           ; r10 = base byte addr
+704000AA   // [0x04] MOVI r1,  #0xAA
+9855FFF8   // [0x08] ST   r1, r10, #-8         ; mem[2] = 0xAA   (relative)
+A895FFF8   // [0x0C] LD   r2, r10, #-8         ; r2 = mem[2]     (relative)
+9895FFF0   // [0x10] ST   r2, r10, #-16        ; mem[0] = r2     (relative)
+783FFFFC   // [0x14] J    #-4                  ; loop forever
+00000000   // [0x18] NOP                        ; delay slot

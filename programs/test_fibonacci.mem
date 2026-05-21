@@ -1,0 +1,34 @@
+// =====================================================================
+// test_fibonacci.mem
+// Computes the 9th Fibonacci number (F0=0, F1=1, ..., F9=34) using
+// a BR loop with delay slot, ADDI with negative immediate, and
+// absolute-mode ST. If your delay slot handling is wrong, this will fail.
+//
+// Expected after halt loop: dmem[0] == 0x00000022   (= decimal 34)
+//
+// Pseudocode:
+//   r1 = 0;  r2 = 1;  r3 = 8 (counter);  r5 = 0x10 (loop top)
+//   loop:
+//     r4 = r1 + r2
+//     r1 = r2
+//     r2 = r4
+//     r3 = r3 - 1
+//     if (r3 != 0) goto r5
+//   end:
+//     M[0] = r2
+//     J self
+// =====================================================================
+
+70400000   // [0x00] MOVI r1, #0
+70800001   // [0x04] MOVI r2, #1
+70C00008   // [0x08] MOVI r3, #8
+71400010   // [0x0C] MOVI r5, #0x10        ; r5 holds loop-top byte address
+01022000   // [0x10] ADD  r4, r1, r2       ; loop top: r4 = r1+r2
+00440000   // [0x14] ADD  r1, r2, r0       ; r1 = r2
+00880000   // [0x18] ADD  r2, r4, r0       ; r2 = r4
+08C7FFFF   // [0x1C] ADDI r3, r3, #-1      ; r3--
+880A3003   // [0x20] BR{nonzero} r5, r3    ; if r3!=0, PC = r5 (after delay)
+00000000   // [0x24] NOP                   ; delay slot
+98BE0000   // [0x28] ST   r2, #0  (rb=31)  ; M[0] = r2 = 34
+783FFFFC   // [0x2C] J    #-4              ; halt loop
+00000000   // [0x30] NOP                   ; delay slot

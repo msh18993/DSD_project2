@@ -1,0 +1,15 @@
+// =====================================================================
+// test_simple.mem
+// Computes 5 + 3 = 8 and stores to data memory address 0.
+// Expected after halt loop: dmem[0] == 0x00000008
+//
+// Each line is one 32-bit word at byte address (line index * 4).
+// Comments are removed by $readmemh; they are here for human reference.
+// =====================================================================
+
+70400005   // [0x00] MOVI r1, #5            ; r1 = 5
+70800003   // [0x04] MOVI r2, #3            ; r2 = 3
+00C22000   // [0x08] ADD  r3, r1, r2        ; r3 = r1 + r2 = 8
+98FE0000   // [0x0C] ST   r3, #0  (rb=31)   ; M[0] = r3 = 8 (absolute)
+783FFFFC   // [0x10] J    #-4               ; loop forever (delay slot follows)
+00000000   // [0x14] NOP (ADD r0,r0,r0)     ; delay slot

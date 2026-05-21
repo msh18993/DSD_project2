@@ -1,0 +1,57 @@
+// =====================================================================
+// test_logic_shift.mem
+// Exercises every R-type / unary / shift / immediate-logic opcode that
+// test_simple and test_fibonacci miss:
+//   SUB, AND, OR, XOR, SHL, LSR, ASR, NEG, NOT, ANDI, ORI, ROR.
+//
+// Strategy: each op writes to r3 (or r4), then r5 += result accumulates
+// everything. If ANY op is wrong, the final sum changes.
+//
+//   r1 = 0xF0,  r2 = 0x0F,  r5 = 0
+//   r5 += SUB(r1, r2)    = 0xE1
+//   r5 += AND(r1, r2)    = 0x00
+//   r5 += OR (r1, r2)    = 0xFF
+//   r5 += XOR(r1, r2)    = 0xFF
+//   r5 += SHL(r1, 4)     = 0xF00
+//   r5 += LSR(r1, 4)     = 0x0F
+//   r5 += NEG(r1)        = 0xFFFFFF10
+//   r5 += ASR(NEG, 4)    = 0xFFFFFFF1     ; sign-extends, unlike LSR
+//   r5 += NOT(r1)        = 0xFFFFFF0F
+//   r5 += ANDI(r1, 0x33) = 0x30
+//   r5 += ORI (r1, 0x33) = 0xF3
+//   r5 += ROR(r2, 4)     = 0xF0000000     ; bottom nibble wraps to top
+//   M[0] = r5
+//
+// Expected after halt loop: dmem[0] == 0xF0001121
+// =====================================================================
+
+704000F0   // [0x00] MOVI r1, #0xF0
+7080000F   // [0x04] MOVI r2, #0x0F
+71400000   // [0x08] MOVI r5, #0
+10C22000   // [0x0C] SUB  r3, r1, r2          ; 0xE1
+014A3000   // [0x10] ADD  r5, r5, r3
+28C22000   // [0x14] AND  r3, r1, r2          ; 0x00
+014A3000   // [0x18] ADD  r5, r5, r3
+38C22000   // [0x1C] OR   r3, r1, r2          ; 0xFF
+014A3000   // [0x20] ADD  r5, r5, r3
+48C22000   // [0x24] XOR  r3, r1, r2          ; 0xFF
+014A3000   // [0x28] ADD  r5, r5, r3
+60C20004   // [0x2C] SHL  r3, r1, #4          ; 0xF00
+014A3000   // [0x30] ADD  r5, r5, r3
+50C20004   // [0x34] LSR  r3, r1, #4          ; 0x0F
+014A3000   // [0x38] ADD  r5, r5, r3
+18C01000   // [0x3C] NEG  r3, r1              ; 0xFFFFFF10  (NEG uses rc as src)
+014A3000   // [0x40] ADD  r5, r5, r3
+59060004   // [0x44] ASR  r4, r3, #4          ; 0xFFFFFFF1
+014A4000   // [0x48] ADD  r5, r5, r4
+20C01000   // [0x4C] NOT  r3, r1              ; 0xFFFFFF0F  (NOT uses rc as src)
+014A3000   // [0x50] ADD  r5, r5, r3
+30C20033   // [0x54] ANDI r3, r1, #0x33       ; 0x30
+014A3000   // [0x58] ADD  r5, r5, r3
+40C20033   // [0x5C] ORI  r3, r1, #0x33       ; 0xF3
+014A3000   // [0x60] ADD  r5, r5, r3
+68C40004   // [0x64] ROR  r3, r2, #4          ; 0xF0000000
+014A3000   // [0x68] ADD  r5, r5, r3
+997E0000   // [0x6C] ST   r5, abs[0]          ; mem[0] = r5
+783FFFFC   // [0x70] J    #-4                 ; loop forever
+00000000   // [0x74] NOP                       ; delay slot

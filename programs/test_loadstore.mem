@@ -1,0 +1,15 @@
+// =====================================================================
+// test_loadstore.mem
+// Verifies the LD (load) datapath that the other tests don't touch.
+// Stores 0x55 to dmem[2], reads it back, then writes it to dmem[0].
+// If LD is broken, dmem[0] stays 0 and the test fails.
+//
+// Expected after halt loop: dmem[0] == 0x00000055
+// =====================================================================
+
+70400055   // [0x00] MOVI r1, #0x55           ; r1 = 0x55
+987E0008   // [0x04] ST   r1, abs[8]          ; mem[2] = 0x55
+A8BE0008   // [0x08] LD   r2, abs[8]          ; r2 = mem[2]
+98BE0000   // [0x0C] ST   r2, abs[0]          ; mem[0] = r2
+783FFFFC   // [0x10] J    #-4                 ; loop forever
+00000000   // [0x14] NOP                       ; delay slot

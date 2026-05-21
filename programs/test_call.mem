@@ -1,0 +1,36 @@
+// =====================================================================
+// test_call.mem
+// Exercises the link-register opcodes JL and BRL plus indirect return
+// via BR. If the link write-back path or the branch-via-register path
+// is wrong, the result is wrong.
+//
+//   main: r1 = 10
+//         JL  r2, leaf1            ; r2 <- 0x08  (delay-slot PC)
+//         <delay-slot NOP>         ; falls through after return
+//         r4 = leaf2_addr
+//         BRL r3, r4 (always)      ; r3 <- 0x14
+//         <delay-slot NOP>
+//         M[0] = r1
+//         halt
+//
+//   leaf1 (0x24): r1 += 5;  BR r2 (always)
+//   leaf2 (0x30): r1 += 2;  BR r3 (always)
+//
+// Expected after halt loop: dmem[0] == 0x00000011  (= 17 = 10+5+2)
+// =====================================================================
+
+7040000A   // [0x00] MOVI r1, #10
+8080001C   // [0x04] JL   r2, #0x1C            ; PC <- 0x24, r2 <- 0x08
+00000000   // [0x08] NOP                        ; delay slot of JL
+71000030   // [0x0C] MOVI r4, #0x30             ; r4 = leaf2 byte addr
+90C80001   // [0x10] BRL  r3, r4 (always)       ; PC <- r4, r3 <- 0x14
+00000000   // [0x14] NOP                        ; delay slot of BRL
+987E0000   // [0x18] ST   r1, abs[0]            ; mem[0] = r1
+783FFFFC   // [0x1C] J    #-4                   ; loop forever
+00000000   // [0x20] NOP                        ; delay slot of J
+08420005   // [0x24] ADDI r1, r1, #5            ; leaf1 body
+88040001   // [0x28] BR   r2 (always)           ; return to caller
+00000000   // [0x2C] NOP                        ; delay slot
+08420002   // [0x30] ADDI r1, r1, #2            ; leaf2 body
+88060001   // [0x34] BR   r3 (always)           ; return to caller
+00000000   // [0x38] NOP                        ; delay slot
