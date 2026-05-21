@@ -51,20 +51,19 @@ module alu (
     // ===== Result =====
     always @(*) begin
         case (alu_op)
-            // TODO: implement each operation
-            // ADD : result = a + b
-            // SUB : result = a - b
-            // NEG : result = -a            (note: operand on input a)
-            // NOT : result = ~a
-            // AND : result = a & b
-            // OR  : result = a | b
-            // XOR : result = a ^ b
-            // LSR : result = a >> b[4:0]
-            // ASR : result = $signed(a) >>> b[4:0]
-            // SHL : result = a << b[4:0]
-            // ROR : (optional) rotate right
-            // PASSB : result = b
-            default: result = 32'h0;
+            ALU_ADD:   result = a + b;
+            ALU_SUB:   result = a - b;
+            ALU_NEG:   result = -a;
+            ALU_NOT:   result = ~a;
+            ALU_AND:   result = a & b;
+            ALU_OR:    result = a | b;
+            ALU_XOR:   result = a ^ b;
+            ALU_LSR:   result = a >> b[4:0];
+            ALU_ASR:   result = $signed(a) >>> b[4:0];
+            ALU_SHL:   result = a << b[4:0];
+            ALU_ROR:   result = (a >> b[4:0]) | (a << (32 - b[4:0]));
+            ALU_PASSB: result = b;
+            default:   result = 32'h0;
         endcase
     end
 

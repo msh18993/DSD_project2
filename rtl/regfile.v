@@ -36,11 +36,20 @@ module regfile (
     reg [31:0] regs [0:31];
 
     integer i;
-    // TODO: synchronous reset clears all regs to 0; synchronous write writes
-    //       wr_data to regs[wr_addr] when we=1 and wr_addr != 0
 
-    // TODO: asynchronous reads
-    //   ra_data should be 0 when ra_addr == 0, else regs[ra_addr]
-    //   Same for rb_data and rc_data
+    // Synchronous write and reset
+    always @(posedge clk or negedge rstn) begin
+        if (!rstn) begin
+            for (i = 0; i < 32; i = i + 1)
+                regs[i] <= 32'h0;
+        end else if (we && (wr_addr != 5'b0)) begin
+            regs[wr_addr] <= wr_data;
+        end
+    end
+
+    // Asynchronous reads (R0 always returns 0)
+    assign ra_data = (ra_addr == 5'b0) ? 32'h0 : regs[ra_addr];
+    assign rb_data = (rb_addr == 5'b0) ? 32'h0 : regs[rb_addr];
+    assign rc_data = (rc_addr == 5'b0) ? 32'h0 : regs[rc_addr];
 
 endmodule

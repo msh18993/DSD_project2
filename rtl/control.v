@@ -103,79 +103,134 @@ module control (
         case (opcode)
             // ===== R-type arithmetic / logical =====
             OP_ADD: begin
-                // TODO: enable reg_write, alu_op = ALU_ADD, src_a = R[rb], src_b = R[rc]
+                reg_write = 1'b1;
+                alu_op = ALU_ADD;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b00;  // R[rc]
             end
             OP_SUB: begin
-                // TODO
+                reg_write = 1'b1;
+                alu_op = ALU_SUB;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b00;  // R[rc]
             end
             OP_AND: begin
-                // TODO
+                reg_write = 1'b1;
+                alu_op = ALU_AND;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b00;  // R[rc]
             end
             OP_OR: begin
-                // TODO
+                reg_write = 1'b1;
+                alu_op = ALU_OR;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b00;  // R[rc]
             end
             OP_XOR: begin
-                // TODO
+                reg_write = 1'b1;
+                alu_op = ALU_XOR;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b00;  // R[rc]
             end
 
             // ===== R-type unary (operand on rc) =====
             OP_NEG: begin
-                // TODO: alu_src_a = R[rc] (note: not R[rb])
+                reg_write = 1'b1;
+                alu_op = ALU_NEG;
+                alu_src_a = 2'b01;  // R[rc]
+                alu_src_b = 2'b00;  // R[rc] (unused for NEG)
             end
             OP_NOT: begin
-                // TODO
+                reg_write = 1'b1;
+                alu_op = ALU_NOT;
+                alu_src_a = 2'b01;  // R[rc]
+                alu_src_b = 2'b00;  // R[rc] (unused for NOT)
             end
 
             // ===== I-type with imm17 =====
             OP_ADDI: begin
-                // TODO: src_b = signExt(imm17)
+                reg_write = 1'b1;
+                alu_op = ALU_ADD;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b01;  // signExt(imm17)
             end
             OP_ANDI: begin
-                // TODO
+                reg_write = 1'b1;
+                alu_op = ALU_AND;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b01;  // signExt(imm17)
             end
             OP_ORI: begin
-                // TODO
+                reg_write = 1'b1;
+                alu_op = ALU_OR;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b01;  // signExt(imm17)
             end
 
             // ===== Shifts =====
             OP_LSR: begin
-                // TODO: src_a = R[rb], src_b = shift_amount, alu_op = ALU_LSR
+                reg_write = 1'b1;
+                alu_op = ALU_LSR;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b11;  // shift_amount
             end
             OP_ASR: begin
-                // TODO
+                reg_write = 1'b1;
+                alu_op = ALU_ASR;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b11;  // shift_amount
             end
             OP_SHL: begin
-                // TODO
+                reg_write = 1'b1;
+                alu_op = ALU_SHL;
+                alu_src_a = 2'b00;  // R[rb]
+                alu_src_b = 2'b11;  // shift_amount
             end
 
             // ===== Move immediate =====
             OP_MOVI: begin
-                // TODO: alu_op = PASSB, src_b = signExt(imm17), reg_write = 1
+                reg_write = 1'b1;
+                alu_op = ALU_PASSB;
+                alu_src_a = 2'b00;  // unused
+                alu_src_b = 2'b01;  // signExt(imm17)
             end
 
             // ===== Jump =====
             OP_J: begin
-                // TODO: is_jump = 1
+                is_jump = 1'b1;
             end
 
             // ===== Branch =====
             OP_BR: begin
-                // TODO: is_branch = 1
+                is_branch = 1'b1;
             end
 
             // ===== Store =====
             OP_ST: begin
-                // TODO:
-                //   - mem_write = 1
-                //   - if is_abs_addr: alu_src_a = 0, src_b = zeroExt(imm17)
-                //   - else: alu_src_a = R[rb], src_b = signExt(imm17)
-                //   - alu_op = ADD
+                mem_write = 1'b1;
+                alu_op = ALU_ADD;
+                if (is_abs_addr) begin
+                    alu_src_a = 2'b10;  // 0
+                    alu_src_b = 2'b10;  // zeroExt(imm17)
+                end else begin
+                    alu_src_a = 2'b00;  // R[rb]
+                    alu_src_b = 2'b01;  // signExt(imm17)
+                end
             end
 
             // ===== Load =====
             OP_LD: begin
-                // TODO: mem_read = 1, reg_write = 1, wb_src = mem
-                //       address logic same as ST
+                mem_read = 1'b1;
+                reg_write = 1'b1;
+                wb_src = 2'b01;     // dmem_rdata
+                alu_op = ALU_ADD;
+                if (is_abs_addr) begin
+                    alu_src_a = 2'b10;  // 0
+                    alu_src_b = 2'b10;  // zeroExt(imm17)
+                end else begin
+                    alu_src_a = 2'b00;  // R[rb]
+                    alu_src_b = 2'b01;  // signExt(imm17)
+                end
             end
 
             // ===== Optional bonus =====

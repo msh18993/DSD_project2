@@ -25,10 +25,14 @@ module dmem (
             mem[i] = 32'h0;
     end
 
-    // TODO: synchronous write
-    //   on posedge clk, if (dreq && drw) write dwdata to mem[daddr[?:?]]
+    // Synchronous write on posedge clk
+    always @(posedge clk) begin
+        if (dreq && drw) begin
+            mem[daddr[11:2]] <= dwdata;
+        end
+    end
 
-    // TODO: asynchronous read
-    //   assign drdata to read from mem at the same word-aligned address
+    // Asynchronous read
+    assign drdata = mem[daddr[11:2]];
 
 endmodule

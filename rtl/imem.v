@@ -21,7 +21,7 @@ module imem #(
         $readmemh(MEM_FILE, mem);
     end
 
-    // TODO: assign instr from mem using word-aligned indexing
-    //       Hint: instr = mem[iaddr[?:?]]
+    // Word-aligned read: convert byte address to word index
+    assign instr = mem[iaddr[11:2]];
 
 endmodule

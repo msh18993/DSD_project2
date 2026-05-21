@@ -104,7 +104,7 @@ module datapath (
     // i=0: use shamt (instruction[4:0])
     // i=1: use rc_data[4:0]
     wire [4:0] shift_amount;
-    // TODO: assign shift_amount based on i_bit
+    assign shift_amount = i_bit ? rc_data[4:0] : shamt;
 
     // ===== ALU Input Muxes =====
     reg [31:0] alu_a, alu_b;
@@ -113,14 +113,29 @@ module datapath (
     //   2'b00 : rb_data
     //   2'b01 : rc_data        (NEG, NOT)
     //   2'b10 : 32'h0          (absolute address)
-    // TODO: implement alu_a mux using always @(*) or assign with ?:
+    always @(*) begin
+        case (alu_src_a)
+            2'b00: alu_a = rb_data;
+            2'b01: alu_a = rc_data;
+            2'b10: alu_a = 32'h0;
+            default: alu_a = 32'h0;
+        endcase
+    end
 
     // alu_src_b:
     //   2'b00 : rc_data
     //   2'b01 : sign_ext_imm17
     //   2'b10 : zero_ext_imm17
     //   2'b11 : {27'h0, shift_amount}
-    // TODO: implement alu_b mux
+    always @(*) begin
+        case (alu_src_b)
+            2'b00: alu_b = rc_data;
+            2'b01: alu_b = sign_ext_imm17;
+            2'b10: alu_b = zero_ext_imm17;
+            2'b11: alu_b = {27'h0, shift_amount};
+            default: alu_b = 32'h0;
+        endcase
+    end
 
     // ===== ALU =====
     wire [31:0] alu_result;
@@ -136,7 +151,9 @@ module datapath (
     //   2'b00 : alu_result
     //   2'b01 : dmem_rdata
     //   2'b10 : pc + 4         (for JL / BRL link, bonus)
-    // TODO: assign wb_data
+    assign wb_data = (wb_src == 2'b01) ? dmem_rdata : 
+                     (wb_src == 2'b10) ? (pc_reg + 32'd4) : 
+                     alu_result;
 
     // ===== Data Memory Address =====
     // The ALU computes the address; just route it out
@@ -184,10 +201,11 @@ module datapath (
     // Determine the *next* PC value
     reg [31:0] pc_next;
     always @(*) begin
-        // TODO: implement next-PC logic
-        //   if branch_pending: pc_next = branch_target_reg
-        //   else: pc_next = pc_plus4
-        pc_next = pc_plus4;
+        if (branch_pending) begin
+            pc_next = branch_target_reg;
+        end else begin
+            pc_next = pc_plus4;
+        end
     end
 
     // PC update + branch_pending state machine
@@ -197,13 +215,20 @@ module datapath (
             branch_pending    <= 1'b0;
             branch_target_reg <= 32'h0;
         end else begin
-            // TODO: pc_reg <= pc_next
-            //
-            // TODO: branch_pending update logic:
-            //   if branch_pending was 1, this cycle is the delay slot — clear it
-            //   else if taking_jump: latch jump_target, set pending
-            //   else if taking_branch: latch branch_target, set pending
-            //
+            pc_reg <= pc_next;
+
+            if (branch_pending) begin
+                // This cycle is the delay slot — clear pending after taking the jump
+                branch_pending <= 1'b0;
+            end else if (taking_jump) begin
+                // Latch jump target and set pending
+                branch_target_reg <= jump_target;
+                branch_pending <= 1'b1;
+            end else if (taking_branch) begin
+                // Latch branch target and set pending
+                branch_target_reg <= branch_target;
+                branch_pending <= 1'b1;
+            end
         end
     end
 
